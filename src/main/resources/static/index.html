@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Estudiantes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">Registro de Estudiantes</h1>
+
+    <!-- Formulario de Registro/Edición -->
+    <form id="estudianteForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <input type="hidden" id="estudianteId">
+        <input type="text" id="nombre" placeholder="Nombre completo" required class="p-2 border rounded">
+        <input type="text" id="carrera" placeholder="Carrera" required class="p-2 border rounded">
+        <input type="email" id="email" placeholder="Correo electrónico" required class="p-2 border rounded">
+        <button type="submit" class="md:col-span-3 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-medium">Guardar Estudiante</button>
+    </form>
+
+    <!-- Campo de Búsqueda -->
+    <div class="mb-4">
+        <input type="text" id="buscarInput" onkeyup="cargarEstudiantes()" placeholder="🔍 Buscar por nombre o carrera..." class="w-full p-2 border rounded bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <!-- Tabla -->
+    <table class="w-full text-left border-collapse">
+        <thead>
+        <tr class="bg-gray-200">
+            <th class="p-3 border">ID</th>
+            <th class="p-3 border">Nombre</th>
+            <th class="p-3 border">Carrera</th>
+            <th class="p-3 border">Email</th>
+            <th class="p-3 border">Acciones</th>
+        </tr>
+        </thead>
+        <tbody id="tablaEstudiantes"></tbody>
+    </table>
+</div>
+
+<script>
+    const API_URL = '/api/estudiantes';
+
+    async function cargarEstudiantes() {
+        const buscar = document.getElementById('buscarInput')?.value || '';
+        const res = await fetch(`${API_URL}?buscar=${encodeURIComponent(buscar)}`);
+        const datos = await res.json();
+        const tbody = document.getElementById('tablaEstudiantes');
+        tbody.innerHTML = '';
+
+        if (datos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No se encontraron estudiantes</td></tr>`;
+            return;
+        }
+
+        datos.forEach(est => {
+            tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3">${est.id}</td>
+                        <td class="p-3">${est.nombre}</td>
+                        <td class="p-3">${est.carrera}</td>
+                        <td class="p-3">${est.email}</td>
+                        <td class="p-3 space-x-2">
+                            <button onclick="editar(${est.id}, '${est.nombre}', '${est.carrera}', '${est.email}')" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Editar</button>
+                            <button onclick="eliminar(${est.id})" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">Eliminar</button>
+                        </td>
+                    </tr>`;
+        });
+    }
+
+    document.getElementById('estudianteForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('estudianteId').value;
+        const payload = {
+            nombre: document.getElementById('nombre').value,
+            carrera: document.getElementById('carrera').value,
+            email: document.getElementById('email').value
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URL}/${id}` : API_URL;
+
+        await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        document.getElementById('estudianteForm').reset();
+        document.getElementById('estudianteId').value = '';
+        cargarEstudiantes();
+    });
+
+    function editar(id, nombre, carrera, email) {
+        document.getElementById('estudianteId').value = id;
+        document.getElementById('nombre').value = nombre;
+        document.getElementById('carrera').value = carrera;
+        document.getElementById('email').value = email;
+    }
+
+    async function eliminar(id) {
+        if (confirm('¿Deseas eliminar este registro?')) {
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            cargarEstudiantes();
+        }
+    }
+
+    cargarEstudiantes();
+</script>
+</body>
+</html>
